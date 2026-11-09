@@ -43,7 +43,7 @@ The implementation covers failed-login bursts, rapid object reads, a second logi
 
 Coverage is the fraction of the five generated attack scenarios with at least one matching alert. It does not estimate production detection performance or behavior outside this generator.
 
-## Design decisions and lessons to discuss
+## What I learned / design decisions I made
 
 - Windowed rules keep per-actor timestamps in deques; thresholds are explicit inputs that can be tuned and regression-tested.
 - Ground-truth fields are kept out of rule conditions and used only by the evaluator.
