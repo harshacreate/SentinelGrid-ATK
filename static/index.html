@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SentinelGrid-ATK</title>
+<style>
+  :root{
+    --bg:#0b0e14; --bg2:#0f1320; --panel:#141926; --panel2:#1b2130; --line:#283043;
+    --ink:#e8ebf2; --muted:#93a0b8; --accent:#38bdf8; --accent2:#0ea5e9;
+    --ok:#34d399; --bad:#fb7185; --warn:#fbbf24;
+    --shadow:0 10px 40px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#10233a 0,transparent 60%),var(--bg);
+       color:var(--ink);font:14.5px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  a{color:var(--accent)}
+  .top{display:flex;align-items:center;gap:14px;padding:18px 26px;border-bottom:1px solid var(--line);
+       background:linear-gradient(180deg,rgba(56,189,248,.06),transparent);position:sticky;top:0;backdrop-filter:blur(8px);z-index:5}
+  .logo{width:42px;height:42px;flex:none;filter:drop-shadow(0 4px 10px rgba(56,189,248,.35))}
+  .brand h1{margin:0;font-size:19px;letter-spacing:-.01em}
+  .brand p{margin:1px 0 0;color:var(--muted);font-size:12.5px}
+  .status{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12.5px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(52,211,153,.15)}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 70px}
+  .intro{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow)}
+  .intro h2{margin:0 0 4px;font-size:14px;color:var(--accent);text-transform:uppercase;letter-spacing:.09em}
+  .intro p{margin:0;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:330px 1fr;gap:16px}
+  @media(max-width:880px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+  .card h3{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+  label{display:block;font-size:12.5px;color:var(--muted);margin:12px 0 6px}
+  .chk{display:flex;align-items:center;gap:9px;margin:6px 0;color:var(--ink);font-size:13.5px}
+  .chk input{accent-color:var(--accent);width:16px;height:16px}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  input[type=number]{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 10px;font:inherit}
+  .rangeval{float:right;color:var(--accent);font-variant-numeric:tabular-nums}
+  button{width:100%;margin-top:16px;background:linear-gradient(180deg,var(--accent),var(--accent2));border:0;color:#04121f;
+         border-radius:11px;padding:12px 14px;font:inherit;font-weight:700;cursor:pointer;transition:transform .05s}
+  button:active{transform:translateY(1px)}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media(max-width:620px){.tiles{grid-template-columns:1fr 1fr}}
+  .tile{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:14px;padding:14px}
+  .tile .n{font-size:26px;font-weight:780;letter-spacing:-.02em}
+  .tile .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:2px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}
+  .chip{font-size:12px;border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:3px 10px;color:var(--ink)}
+  .alert{border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-top:10px;background:var(--panel2);cursor:pointer;transition:border-color .15s}
+  .alert:hover{border-color:var(--accent)}
+  .alert .hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .sev{font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px}
+  .s-critical{background:rgba(251,113,133,.16);color:var(--bad)} .s-high{background:rgba(251,113,133,.14);color:#fda4af}
+  .s-medium{background:rgba(251,191,36,.16);color:var(--warn)} .s-low{background:rgba(148,163,184,.16);color:var(--muted)}
+  .tech{font-family:ui-monospace,Menlo,monospace;color:var(--accent);font-size:12.5px}
+  .muted{color:var(--muted)} .fp{color:var(--warn)}
+  .pb{display:none;margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
+  .pb.open{display:block}
+  .pb li{margin:3px 0;color:var(--muted);font-size:13px}
+  .empty{color:var(--muted);text-align:center;padding:26px}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid #04121f;border-top-color:transparent;border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="top">
+  <svg class="logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7dd3fc"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
+    <path d="M24 3l17 6v11c0 11-7.3 18.6-17 22C14.3 38.6 7 31 7 20V9l17-6z" fill="url(#g)" opacity=".18"/>
+    <path d="M24 3l17 6v11c0 11-7.3 18.6-17 22C14.3 38.6 7 31 7 20V9l17-6z" stroke="url(#g)" stroke-width="2"/>
+    <path d="M15 15h18M15 21h18M15 27h18M21 12v24M27 12v24" stroke="#7dd3fc" stroke-width="1.3" opacity=".55"/>
+    <circle cx="24" cy="23" r="3.4" fill="#e0f2fe"/>
+  </svg>
+  <div class="brand"><h1>SentinelGrid-ATK</h1><p>Cloud attack detection &amp; response console</p></div>
+  <div class="status"><span class="dot"></span> engine ready · synthetic targets only</div>
+</div>
+
+<div class="wrap">
+  <div class="intro">
+    <h2>What this is</h2>
+    <p>An interactive detection lab. Choose attack scenarios, tune detection thresholds and background
+       noise, then run the engine over a synthetic cloud audit trail. Every alert is scored against
+       ground truth and mapped to MITRE ATT&amp;CK — click an alert to see its evidence and response playbook.</p>
+  </div>
+
+  <div class="grid">
+    <!-- controls -->
+    <div class="card">
+      <h3>Detection controls</h3>
+      <label>Attack scenarios</label>
+      <div id="scenarios"></div>
+      <label>Background noise events <span class="rangeval" id="noiseVal">120</span></label>
+      <input type="range" id="noise" min="30" max="400" step="10" value="120" oninput="noiseVal.textContent=this.value">
+      <label>Brute-force threshold (failed logins) <span class="rangeval" id="bfVal">10</span></label>
+      <input type="range" id="bf" min="3" max="25" step="1" value="10" oninput="bfVal.textContent=this.value">
+      <label>Bulk-access threshold (reads) <span class="rangeval" id="bulkVal">20</span></label>
+      <input type="range" id="bulk" min="5" max="40" step="1" value="20" oninput="bulkVal.textContent=this.value">
+      <label>Random seed</label>
+      <input type="number" id="seed" value="7">
+      <button id="runBtn" onclick="runDetection()">Run detection</button>
+    </div>
+
+    <!-- results -->
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <h3>Results</h3>
+        <div class="tiles" id="tiles">
+          <div class="tile"><div class="n">—</div><div class="l">Coverage</div></div>
+          <div class="tile"><div class="n">—</div><div class="l">Alerts</div></div>
+          <div class="tile"><div class="n">—</div><div class="l">False alerts</div></div>
+          <div class="tile"><div class="n">—</div><div class="l">Events</div></div>
+        </div>
+        <div class="chips" id="present"></div>
+      </div>
+      <div class="card">
+        <h3>Alerts — click to expand evidence &amp; playbook</h3>
+        <div id="alerts"><div class="empty">Run a detection to see alerts.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let CAT = null;
+async function boot(){
+  CAT = await (await fetch('/api/catalogue')).json();
+  $('scenarios').innerHTML = CAT.scenarios.map(s =>
+    `<label class="chk"><input type="checkbox" value="${s.name}" checked> ${s.label}</label>`).join('');
+}
+function chosen(){ return [...document.querySelectorAll('#scenarios input:checked')].map(i=>i.value); }
+function sevClass(s){ return 's-'+s.toLowerCase(); }
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+async function runDetection(){
+  const btn = $('runBtn'); btn.innerHTML = '<span class="spin"></span> Running…'; btn.disabled = true;
+  const body = {scenarios: chosen(), noise:+$('noise').value, bf_threshold:+$('bf').value,
+                bulk_threshold:+$('bulk').value, seed:+$('seed').value};
+  const r = await (await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
+  btn.innerHTML = 'Run detection'; btn.disabled = false;
+  const m = r.metrics;
+  $('tiles').innerHTML = [
+    [Math.round(m.coverage*100)+'%','Coverage'], [m.alerts,'Alerts'],
+    [m.false_alerts,'False alerts'], [m.events_total,'Events ('+m.events_attack+' attack)']
+  ].map(([n,l])=>`<div class="tile"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+  $('present').innerHTML = r.present.map(p=>`<span class="chip">${p.id} · ${esc(p.name)}</span>`).join('') ||
+    '<span class="muted">no attack techniques in this run</span>';
+  if(!r.alerts.length){ $('alerts').innerHTML = '<div class="empty">No alerts fired for these settings.</div>'; return; }
+  $('alerts').innerHTML = r.alerts.map((a,i)=>`
+    <div class="alert" onclick="this.querySelector('.pb').classList.toggle('open')">
+      <div class="hd">
+        <span class="sev ${sevClass(a.severity)}">${a.severity}</span>
+        <span class="tech">${a.technique}</span>
+        <b>${esc(a.technique_name)}</b>
+        ${a.is_true?'':'<span class="fp">· possible false positive</span>'}
+      </div>
+      <div class="muted" style="margin-top:5px">${a.time} · rule <b>${a.rule}</b> · actor ${esc(a.actor)} · ${esc(a.source_ip)}</div>
+      <div style="margin-top:4px">${esc(a.detail)}</div>
+      <div class="pb">
+        <div style="color:var(--accent);font-weight:700;margin-bottom:5px">Response playbook — ${esc(a.playbook_title)}</div>
+        <ol>${a.playbook.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
+      </div>
+    </div>`).join('');
+}
+boot();
+</script>
+</body>
+</html>

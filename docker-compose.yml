@@ -1,0 +1,14 @@
+services:
+  sentinelgrid:
+    build: .
+    image: sentinelgrid-atk:local
+    container_name: sentinelgrid-atk
+    ports:
+      - "127.0.0.1:8091:8000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    restart: unless-stopped

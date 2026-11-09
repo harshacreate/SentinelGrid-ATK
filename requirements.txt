@@ -1,0 +1,4 @@
+# Core lab runs on the Python standard library only.
+# Testing:
+pytest>=7.4
+flask>=3.0

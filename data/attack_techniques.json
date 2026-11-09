@@ -1,0 +1,46 @@
+{
+  "techniques": [
+    {
+      "id": "T1110.001",
+      "tactic": "Credential Access",
+      "name": "Brute Force: Password Guessing",
+      "description": "Repeated authentication attempts against an account from one source.",
+      "reference": "https://attack.mitre.org/techniques/T1110/001/"
+    },
+    {
+      "id": "T1078",
+      "tactic": "Defense Evasion / Persistence",
+      "name": "Valid Accounts",
+      "description": "Use of legitimate credentials from an anomalous location or time.",
+      "reference": "https://attack.mitre.org/techniques/T1078/"
+    },
+    {
+      "id": "T1530",
+      "tactic": "Collection",
+      "name": "Data from Cloud Storage Object",
+      "description": "Enumeration or bulk download of objects from a cloud storage bucket.",
+      "reference": "https://attack.mitre.org/techniques/T1530/"
+    },
+    {
+      "id": "T1098",
+      "tactic": "Persistence",
+      "name": "Account Manipulation",
+      "description": "Creation of new access keys or privilege changes on an identity.",
+      "reference": "https://attack.mitre.org/techniques/T1098/"
+    },
+    {
+      "id": "T1562.008",
+      "tactic": "Defense Evasion",
+      "name": "Impair Defenses: Disable Cloud Logs",
+      "description": "Disabling or deleting a cloud audit trail to evade detection.",
+      "reference": "https://attack.mitre.org/techniques/T1562/008/"
+    },
+    {
+      "id": "T1619",
+      "tactic": "Discovery",
+      "name": "Cloud Storage Object Discovery",
+      "description": "Listing storage buckets/objects to map accessible data.",
+      "reference": "https://attack.mitre.org/techniques/T1619/"
+    }
+  ]
+}
