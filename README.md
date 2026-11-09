@@ -1,110 +1,78 @@
-# SentinelGrid-ATK — Multi-Scenario Cloud Attack Detection & Response Lab
+# SentinelGrid-ATK
 
-## Run with Docker
+Stateful cloud-audit detections with a local dashboard and an evaluation harness for measuring coverage, false alerts, and alert latency on generated scenarios.
+
+[![CI](https://github.com/harshacreate/SentinelGrid-ATK/actions/workflows/ci.yml/badge.svg)](https://github.com/harshacreate/SentinelGrid-ATK/actions/workflows/ci.yml)
+
+## Problem / why it matters
+
+Cloud audit streams contain routine actions alongside events that may indicate credential abuse, data access, persistence, or disabled logging. A rule needs to show both that it fires on the intended behavior and how often it is noisy on its evaluation set. This lab makes those checks repeatable with synthetic, labeled scenarios; it does not connect to a cloud account.
+
+## What I built
+
+The dashboard lets a user choose scenarios and adjust thresholds, then calls the same detection engine and scoring code used by the command-line evaluation. Rules consume normalized events without reading the ground-truth labels; the harness uses those labels only after alerting to score scenario coverage, false alerts, and latency.
+
+```mermaid
+flowchart LR
+  A[Seeded synthetic scenarios] --> B[Normalized audit events]
+  B --> C[Stateful rules and engine]
+  C --> D[Alerts and response playbooks]
+  B --> E[Ground-truth labels]
+  D --> F[Evaluation harness]
+  E --> F
+  G[Flask dashboard] --> C
+  G --> F
+```
+
+The implementation covers failed-login bursts, rapid object reads, a second login IP within a short window, access-key creation, and audit logging being stopped. ATT&CK identifiers are labels for the modeled scenarios, not proof that the simplified events match a real provider schema.
+
+### Dashboard
+
+![SentinelGrid-ATK dashboard showing synthetic scenario controls and alert results](screenshots/dashboard.jpg)
+
+## Results / evaluation
+
+**SYNTHETIC only.** Measured locally with `python3 -m harness.evaluate --seeds 20` (base seed 7, seeds 7–26):
+
+| Measure | Result |
+|---|---:|
+| Generated scenario coverage | 100% mean; 100% worst seed |
+| False alerts | 0 total across 20 runs |
+| Mean alert latency | 5.18 seconds |
+| Unit tests | 6 passed |
+
+Coverage is the fraction of the five generated attack scenarios with at least one matching alert. It does not estimate production detection performance or behavior outside this generator.
+
+## Design decisions and lessons to discuss
+
+- Windowed rules keep per-actor timestamps in deques; thresholds are explicit inputs that can be tuned and regression-tested.
+- Ground-truth fields are kept out of rule conditions and used only by the evaluator.
+- The `impossible_travel` rule checks for a different source IP inside a time window; it does not perform geolocation or distance calculations.
+- A single synthetic generator makes the run reproducible, but also limits what the score can say. A next step is an adapter for a documented public audit-log dataset or provider-shaped fixture, with its license and field mapping recorded.
+
+## Run it
+
+### Docker dashboard
 
 ```bash
-docker compose up --build -d      # then open http://localhost:8091
-docker compose down               # stop
+docker compose up --build
+# Open http://127.0.0.1:8091
 ```
 
-This repository is standalone; the commands below build and run this project on its own.
-
-A small, self-contained lab for writing cloud-attack **detections** and
-**response playbooks**, then measuring how well they work. It generates a
-synthetic cloud audit trail (benign activity plus labelled attack sequences),
-runs a detection engine over it, and scores the results against ground truth
-across many random seeds: **synthetic-scenario coverage**, false alerts, and
-alert latency.
-
-Everything runs locally against **synthetic events** — no real accounts, no
-network access, nothing to authorize. The attack sequences are modelled on
-public [MITRE ATT&CK](https://attack.mitre.org/) techniques so the detections
-map to a shared vocabulary.
-
-> **What the numbers mean (and don't).** "Synthetic-scenario coverage" is the
-> fraction of the lab's *generated* attack scenarios that the detections catch.
-> It is a measure of the rules against this synthetic scenario family — **not**
-> of real-world detection performance on production cloud logs or on attacks the
-> generator doesn't model. Treat it as a regression/so-far-so-good signal for
-> your rules, not as a security assurance.
-
-## Why this exists
-
-Detection engineering is usually judged by anecdotes ("we caught that one
-time"). This lab makes it measurable: every detection is scored against a
-labelled scenario, so you can see what you catch, what you miss, and how noisy
-a rule is before it ever touches production.
-
-## Techniques covered
-
-| ATT&CK | Technique | Detection |
-|--------|-----------|-----------|
-| T1110.001 | Password guessing | `brute_force_login` |
-| T1078 | Valid accounts (impossible travel) | `impossible_travel` |
-| T1530 / T1619 | Cloud storage collection / discovery | `bulk_object_access` |
-| T1098 | Account manipulation (new access key) | `sensitive_api_call` |
-| T1562.008 | Impair defenses (disable logging) | `sensitive_api_call` |
-
-## Layout
-
-```
-attack_sim/     synthetic audit-event generators + ATT&CK reference
-detections/     the detection engine and rules
-harness/        scoring: coverage, false alerts, latency
-response/        response playbooks (one per detection)
-tests/          unit tests for every rule
-data/           bundled ATT&CK technique reference
-docker-compose.yml   optional sealed OpenSearch lab (not required)
-```
-
-## Quick start
+### Local tests and evaluation
 
 ```bash
-make setup          # installs pytest (the lab itself is stdlib-only)
-make test           # run the unit tests
-make eval           # run the scored evaluation report (over 20 seeds)
-make eval-json      # same, as JSON
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+make test
+make eval
 ```
 
-The evaluation runs over many random seeds (`--seeds`, default 20) and reports
-the mean and worst-case synthetic-scenario coverage, so one lucky timeline can't
-flatter the result. Example report:
+The evaluator is also available as JSON with `make eval-json`. The optional OpenSearch lab is separate and is not required for the detector or metrics.
 
-```
-Synthetic-scenario coverage : mean 100%  (worst seed 100%)
-False alerts                : 0.00 per run  (0 total over 20 runs)
-Mean alert latency          : ... s
-```
+## Limitations & next steps
 
-## How scoring works
+The generated events are not CloudTrail or Azure Activity records, the rule set is small and hand-coded, and the labels simplify attacker behavior. Thresholds and IP-change logic are demonstrations, not deployment-ready rules. Next steps are schema adapters, benign replay data with documented provenance, rule-level precision/recall analysis, and analyst feedback on playbook steps.
 
-1. `attack_sim/scenarios.py` builds a time-ordered event stream: background
-   noise plus one or more attack scenarios. Attack events carry hidden
-   ground-truth labels (`is_attack`, `technique`) that the detections never see.
-2. `detections/` runs stateful rules over the stream and emits alerts.
-3. `harness/evaluate.py` compares alerts to the labels:
-   - a **true alert** matches a technique actually present in the run,
-   - a **false alert** matches none,
-   - **latency** is the time from the first attack event to the first true alert.
-
-## Extending it
-
-- **New technique:** add it to `data/attack_techniques.json`, write a generator
-  in `attack_sim/scenarios.py`, add it to `SCENARIOS`.
-- **New detection:** add a rule class in `detections/rules.py` (the engine calls
-  each rule once per event, in time order, so windowed state is easy), register
-  it in `default_ruleset()`, and add a test.
-- **Tune for noise:** lower a rule's threshold and watch `false_alerts_total`
-  climb — the harness makes the precision/recall trade-off visible.
-
-## Optional sealed lab
-
-`docker compose up -d` starts a single-node OpenSearch + Dashboards stack on an
-`internal: true` network (no internet egress, dashboards bound to `127.0.0.1`).
-Use it if you want to ship the synthetic events into a SIEM-like store and build
-queries. It is entirely optional; the detections and scoring do not need it.
-
-## Scope & safety
-
-This project only ever operates on data it generates itself. There is no
-scanning, no exploitation, and no interaction with third-party systems.
+The dashboard and evaluator run locally. No scan, exploit, credential, or third-party system interaction is performed.
